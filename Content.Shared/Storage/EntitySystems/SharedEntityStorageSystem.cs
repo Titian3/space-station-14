@@ -369,8 +369,16 @@ public abstract class SharedEntityStorageSystem : EntitySystem
         {
             var aabb = _physics.GetWorldAABB(toAdd, body: phys);
 
+            //check the current rotation
             if (component.MaxSize < aabb.Size.X || component.MaxSize < aabb.Size.Y)
-                return false;
+            {
+                //Check Other angles for sizes that fit
+                var smallestAabb = _physics.GetSmallestDimensionAABB(toAdd, body: phys);
+                if (component.MaxSize < smallestAabb.Size.X || component.MaxSize < smallestAabb.Size.Y)
+                {
+                    return false;  // The entity can't fit in any orientation
+                }
+            }
         }
 
         return Insert(toAdd, container, component);
