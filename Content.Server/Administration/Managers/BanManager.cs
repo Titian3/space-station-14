@@ -8,6 +8,7 @@ using Content.Server.Database;
 using Content.Server.GameTicking;
 using Content.Shared.CCVar;
 using Content.Shared.Database;
+using Content.Shared.Ghost.Roles;
 using Content.Shared.Players;
 using Content.Shared.Players.PlayTimeTracking;
 using Content.Shared.Roles;
@@ -37,6 +38,8 @@ public sealed class BanManager : IBanManager, IPostInjectInit
 
     public const string SawmillId = "admin.bans";
     public const string JobPrefix = "Job:";
+    public const string AntagPrefix = "Antag:";
+    public const string GhostRolePrefix = "GhostRole:";
 
     private readonly Dictionary<NetUserId, HashSet<ServerRoleBanDef>> _cachedRoleBans = new();
 
@@ -184,12 +187,32 @@ public sealed class BanManager : IBanManager, IPostInjectInit
     // Removing it will clutter the note list. Please also make sure that department bans are applied to roles with the same DateTimeOffset.
     public async void CreateRoleBan(NetUserId? target, string? targetUsername, NetUserId? banningAdmin, (IPAddress, int)? addressRange, ImmutableArray<byte>? hwid, string role, uint? minutes, NoteSeverity severity, string reason, DateTimeOffset timeOfBan)
     {
-        if (!_prototypeManager.TryIndex(role, out JobPrototype? _))
+
+        string? prefix = null;
+
+        if (_prototypeManager.TryIndex<JobPrototype>(role, out _))
+        {
+            prefix = JobPrefix;
+        }
+        else if (_prototypeManager.TryIndex<AntagPrototype>(role, out _))
+        {
+            prefix = AntagPrefix;
+        }
+        else if (_prototypeManager.TryIndex<GhostRolePrototype>(role, out _))
+        {
+            prefix = GhostRolePrefix;
+        }
+
+        if (prefix != null)
+        {
+            role = string.Concat(prefix, role);
+        }
+        else
         {
             throw new ArgumentException($"Invalid role '{role}'", nameof(role));
         }
 
-        role = string.Concat(JobPrefix, role);
+
         DateTimeOffset? expires = null;
         if (minutes > 0)
         {
