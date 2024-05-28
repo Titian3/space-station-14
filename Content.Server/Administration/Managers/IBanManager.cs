@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Net;
 using System.Threading.Tasks;
+using Content.Shared.Administration.Events;
 using Content.Shared.Database;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
@@ -56,4 +57,9 @@ public interface IBanManager
     /// </summary>
     /// <param name="pSession">Player's session</param>
     public void SendRoleBans(ICommonSession pSession);
+    /// <summary>
+    /// Gets list of ghostRole prototypes
+    /// </summary>
+    /// <param name="msg"></param>
+    void OnRequestGhostRoleNames(MsgRequestGhostRoleNames msg);
 }

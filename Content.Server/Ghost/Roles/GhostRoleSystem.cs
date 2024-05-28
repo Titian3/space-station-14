@@ -1,5 +1,6 @@
 using System.Linq;
 using Content.Server.Administration.Logs;
+using Content.Server.Administration.Managers;
 using Content.Server.EUI;
 using Content.Server.Ghost.Roles.Components;
 using Content.Server.Ghost.Roles.Events;
@@ -48,6 +49,7 @@ namespace Content.Server.Ghost.Roles
         [Dependency] private readonly IGameTiming _timing = default!;
         [Dependency] private readonly PopupSystem _popupSystem = default!;
         [Dependency] private readonly IPrototypeManager _prototype = default!;
+        [Dependency] private readonly IBanManager _banManager = default!;
 
         private uint _nextRoleIdentifier;
         private bool _needsUpdateGhostRoleCount = true;
@@ -529,6 +531,10 @@ namespace Content.Server.Ghost.Roles
             var roles = new List<GhostRoleInfo>();
             var metaQuery = GetEntityQuery<MetaDataComponent>();
 
+            // Get role bans for the player
+            HashSet<string>? roleBans = player != null ? _banManager.GetRoleBans(player.UserId) : null;
+
+
             foreach (var (id, (uid, role)) in _ghostRoles)
             {
                 if (metaQuery.GetComponent(uid).EntityPaused)
@@ -557,6 +563,12 @@ namespace Content.Server.Ghost.Roles
                     ? _timing.CurTime.Add(raffle.Countdown)
                     : TimeSpan.MinValue;
 
+                //Get the name of the proto with the ID so we can check it
+                // _prototype.TryIndex<AntagPrototype>(role, out _)
+                // _prototype.TryIndex<GhostRolePrototype>(role, out _))
+                // Check if the player is banned from this role
+                bool isBanned = roleBans != null && roleBans.Contains(role.RoleName);
+
                 roles.Add(new GhostRoleInfo
                 {
                     Identifier = id,
@@ -566,7 +578,8 @@ namespace Content.Server.Ghost.Roles
                     Requirements = role.Requirements,
                     Kind = kind,
                     RafflePlayerCount = rafflePlayerCount,
-                    RaffleEndTime = raffleEndTime
+                    RaffleEndTime = raffleEndTime,
+                    IsBanned = isBanned
                 });
             }
 

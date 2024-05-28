@@ -1,10 +1,4 @@
-using System.Linq;
-using Content.Server.Administration;
-using Content.Server.Administration.Commands;
-using Content.Server.Administration.Managers;
-using Content.Server.Database;
 using Content.Server.EUI;
-using Content.Shared.Administration.BanList;
 using Content.Shared.Eui;
 using Content.Shared.Ghost.Roles;
 
@@ -12,14 +6,10 @@ namespace Content.Server.Ghost.Roles.UI
 {
     public sealed class GhostRolesEui : BaseEui
     {
-        private readonly BanManager _banManager;
         private readonly GhostRoleSystem _ghostRoleSystem;
-
 
         public GhostRolesEui()
         {
-            IoCManager.InjectDependencies(this);
-            _banManager = IoCManager.Resolve<BanManager>();
             _ghostRoleSystem = IoCManager.Resolve<IEntitySystemManager>().GetEntitySystem<GhostRoleSystem>();
         }
 
@@ -35,20 +25,7 @@ namespace Content.Server.Ghost.Roles.UI
             switch (msg)
             {
                 case RequestGhostRoleMessage req:
-
-                    var roleBans = _banManager.GetRoleBans(Player.UserId);
-
-                    // Set a breakpoint here to inspect the roleBans variable
-                    var hasBan = false;
-                    if (roleBans != null && roleBans.Any())
-                    {
-                        hasBan = true;
-                    }
-
-                    if (!hasBan)
-                    {
-                        _ghostRoleSystem.Request(Player, req.Identifier);
-                    }
+                    _ghostRoleSystem.Request(Player, req.Identifier);
                     break;
                 case FollowGhostRoleMessage req:
                     _ghostRoleSystem.Follow(Player, req.Identifier);

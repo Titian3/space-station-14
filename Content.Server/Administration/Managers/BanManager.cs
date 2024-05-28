@@ -6,11 +6,14 @@ using System.Threading.Tasks;
 using Content.Server.Chat.Managers;
 using Content.Server.Database;
 using Content.Server.GameTicking;
+using Content.Server.Ghost.Roles.Components;
+using Content.Shared.Administration.Events;
 using Content.Shared.CCVar;
 using Content.Shared.Database;
 using Content.Shared.Ghost.Roles;
 using Content.Shared.Players;
 using Content.Shared.Players.PlayTimeTracking;
+using Content.Shared.Prototypes;
 using Content.Shared.Roles;
 using Robust.Server.Player;
 using Robust.Shared.Configuration;
@@ -46,8 +49,40 @@ public sealed class BanManager : IBanManager, IPostInjectInit
     public void Initialize()
     {
         _playerManager.PlayerStatusChanged += OnPlayerStatusChanged;
-
         _netManager.RegisterNetMessage<MsgRoleBans>();
+        _netManager.RegisterNetMessage<MsgRequestGhostRoleNames>(OnRequestGhostRoleNames);
+        _netManager.RegisterNetMessage<MsgReceiveGhostRoleNames>();
+
+        _sawmill.Debug("BanManager initialized and messages registered.");
+    }
+
+    public void OnRequestGhostRoleNames(MsgRequestGhostRoleNames msg)
+    {
+        _sawmill.Debug($"Received MsgRequestGhostRoleNames from UserId {msg.UserId}");
+
+        // Retrieve the session using the UserId from the request message
+        if (!_playerManager.TryGetSessionById(msg.UserId, out var session))
+        {
+            _sawmill.Warning($"No session found for UserId {msg.UserId}");
+            return;
+        }
+
+        // Collect role names as before
+        var ghostRoleNames = _prototypeManager.EnumeratePrototypes<EntityPrototype>()
+            .Where(filteredPrototype => filteredPrototype.HasComponent<GhostRoleComponent>())
+            .Select(ghostComp => ghostComp.Name)
+            .ToList();
+
+        _sawmill.Debug($"Collected {ghostRoleNames.Count} ghost role names.");
+
+        // Create and send the response message using the player's session channel
+        var response = new MsgReceiveGhostRoleNames
+        {
+            RoleNames = ghostRoleNames
+        };
+        _netManager.ServerSendMessage(response, session.Channel);
+
+        _sawmill.Debug("MsgReceiveGhostRoleNames sent.");
     }
 
     private async void OnPlayerStatusChanged(object? sender, SessionStatusEventArgs e)

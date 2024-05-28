@@ -27,6 +27,11 @@ namespace Content.Shared.Ghost.Roles
         /// </summary>
         public TimeSpan RaffleEndTime { get; set; }
 
+        /// <summary>
+        /// Indicates whether the player is banned from this role.
+        /// </summary>
+        public bool IsBanned { get; set; }
+
     }
 
     [NetSerializable, Serializable]
